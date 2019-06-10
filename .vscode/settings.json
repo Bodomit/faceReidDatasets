@@ -1,3 +1,13 @@
 {
-    "python.pythonPath": "/home/glen/miniconda3/envs/dev/bin/python"
+    "python.pythonPath": "/home/glen/miniconda3/envs/dev/bin/python",
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "*_test.py"
+    ],
+    "python.testing.pyTestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.unittestEnabled": true
 }
