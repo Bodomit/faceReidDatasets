@@ -1,5 +1,6 @@
 import os
 import abc
+import random
 import itertools
 import sacred
 
@@ -97,3 +98,19 @@ class VGGFace2(MutiLevelDatasetBase):
                     dataset[subset].append((path, label))
 
         return dataset
+
+    def get_v2s(self, seed=42):
+        random.seed(seed)
+        return {
+            "train": self._v2s_subset(self.dataset["train"]),
+            "test": self._v2s_subset(self.dataset["test"])
+        }
+
+    def _v2s_subset(self, subset):
+        gallery = []
+        probe = []
+        for label, paths in subset.as_target_to_source_list().items():
+            gallery_candidate = paths.pop(random.randrange(0, len(paths)))
+            gallery.append((label, gallery_candidate))
+            probe.extend((label, p) for p in paths)
+        return {"gallery": gallery, "probe": probe}

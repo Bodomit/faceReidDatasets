@@ -106,4 +106,17 @@ class VGGFace2Tests(unittest.TestCase):
         # Check classes are in correct sub directory.
         self.assertTrue("n000002" in (x[1] for x in dataset["train"]))
         self.assertTrue("n000001" in (x[1] for x in dataset["test"]))
-        
+
+    def test_v2s_dataset(self):
+        dataset = datasets.VGGFace2(self.dataset_directory).get_v2s()
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Test for galleries and probes.
+        self.assertSetEqual(set(dataset["train"]), set(["gallery", "probe"]))
+        self.assertSetEqual(set(dataset["test"]), set(["gallery", "probe"]))
+
+        # Test length of galleries.
+        self.assertEqual(len(dataset["train"]["gallery"]), 8631)
+        self.assertEqual(len(dataset["test"]["gallery"]), 500)
