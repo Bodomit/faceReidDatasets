@@ -62,3 +62,38 @@ class MutiLevelDatasetBase(abc.ABC):
     def as_target_to_source_list(self):
         return self._traverse(self.dataset,
                               lambda d: d.as_target_to_source_list())
+
+
+class VGGFace2(MutiLevelDatasetBase):
+    """
+    #TODO
+    """
+
+    def __init__(self, dataset_directory):
+        dataset_directory = os.path.expanduser(dataset_directory)
+        dataset_directory = os.path.abspath(dataset_directory)
+        self.dataset_directory = dataset_directory
+        super().__init__(self._read_dataset())
+
+    def _read_dataset(self):
+        if not os.path.isdir(self.dataset_directory):
+            raise NotADirectoryError()
+
+        dataset = {
+            "train": [],
+            "test": []
+        }
+
+        for root, dirs, files in os.walk(self.dataset_directory, topdown=True):
+            assert not (dirs and files)
+
+            for file in files:
+                if os.path.splitext(file)[1] == ".jpg":
+                    path = os.path.join(root, file)
+                    path = os.path.expanduser(path)
+                    path = os.path.abspath(path)
+                    label = os.path.basename(os.path.dirname(path))
+                    subset = os.path.basename(os.path.dirname(root))
+                    dataset[subset].append((path, label))
+
+        return dataset

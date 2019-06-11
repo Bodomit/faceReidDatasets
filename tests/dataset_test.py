@@ -1,3 +1,4 @@
+import os
 import unittest
 from faceReidDatasets import datasets
 
@@ -85,3 +86,24 @@ class MultiLevelDatasetBaseBasic(unittest.TestCase):
                       11: ["G"]}
         }
         self.assertDictEqual(dataset, correct)
+
+
+class VGGFace2Tests(unittest.TestCase):
+    def setUp(self):
+        self.dataset_directory = os.path.join(
+            "~",
+            "datasets",
+            "vggface2"
+        )
+
+    def test_init(self):
+        dataset = datasets.VGGFace2(self.dataset_directory)
+        self.assertIsNotNone(dataset)
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Check classes are in correct sub directory.
+        self.assertTrue("n000002" in (x[1] for x in dataset["train"]))
+        self.assertTrue("n000001" in (x[1] for x in dataset["test"]))
+        
