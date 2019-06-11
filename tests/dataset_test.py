@@ -120,3 +120,37 @@ class VGGFace2Tests(unittest.TestCase):
         # Test length of galleries.
         self.assertEqual(len(dataset["train"]["gallery"]), 8631)
         self.assertEqual(len(dataset["test"]["gallery"]), 500)
+
+
+class SyntheticTests(unittest.TestCase):
+    def setUp(self):
+        self.dataset_directory = os.path.join(
+            "~",
+            "datasets",
+            "synth"
+        )
+
+    def test_init(self):
+        dataset = datasets.Synthetic(self.dataset_directory)
+        self.assertIsNotNone(dataset)
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Check classes are in correct sub directory.
+        self.assertTrue("00001" in (x[1] for x in dataset["train"]))
+        self.assertTrue("00052" in (x[1] for x in dataset["test"]))
+
+    def test_v2s_dataset(self):
+        dataset = datasets.Synthetic(self.dataset_directory).get_v2s()
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Test for galleries and probes.
+        self.assertSetEqual(set(dataset["train"]), set(["gallery", "probe"]))
+        self.assertSetEqual(set(dataset["test"]), set(["gallery", "probe"]))
+
+        # Test length of galleries.
+        self.assertEqual(len(dataset["train"]["gallery"]), 1644)
+        self.assertEqual(len(dataset["test"]["gallery"]), 100)
