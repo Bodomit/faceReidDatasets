@@ -13,7 +13,7 @@ class DatasetBase(abc.ABC):
     #TODO
     """
 
-    def __init__(self, dataset: List[Set[Tuple[str, str]]]):
+    def __init__(self, dataset: List[Tuple[str, str]]):
         self._dataset = sorted(dataset, key=lambda x: (x[1], x[0]))
 
     @property
