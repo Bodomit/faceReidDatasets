@@ -60,6 +60,5 @@ class MutiLevelDatasetBase(abc.ABC):
         return self.dataset[key]
 
     def as_target_to_source_list(self):
-        return self._traverse(self.dataset, 
+        return self._traverse(self.dataset,
                               lambda d: d.as_target_to_source_list())
-    
