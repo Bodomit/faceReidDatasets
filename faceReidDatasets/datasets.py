@@ -110,15 +110,16 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
                                 dataset_directory,
                                 cache_directory=None):
         dataset_name = os.path.basename(dataset_directory)
-        cache_path = os.path.join(cache_directory, dataset_name + ".pickle")
+        if cache_directory is None:
+            return self._read_dataset()
 
-        # Cache read.
+        # Read / Store in the cache.
         try:
+            cache_path = os.path.join(cache_directory,
+                                      dataset_name + ".pickle")
             with open(cache_path, "rb") as f:
                 return pickle.load(f)
         except FileNotFoundError:
-
-            # Dataset read and cache write.
             dataset = self._read_dataset()
             try:
                 with open(cache_path, 'wb') as f:
