@@ -90,16 +90,25 @@ class MutiLevelDatasetBase(abc.ABC):
         return dataset
 
 
-class VGGFace2(MutiLevelDatasetBase):
+class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     """
     #TODO
     """
-
     def __init__(self, dataset_directory):
         dataset_directory = os.path.expanduser(dataset_directory)
         dataset_directory = os.path.abspath(dataset_directory)
         self.dataset_directory = dataset_directory
         super().__init__(self._read_dataset())
+
+    @abc.abstractmethod
+    def _read_dataset(self):
+        pass
+
+
+class VGGFace2(ReadableMultiLevelDatasetBase):
+    """
+    #TODO
+    """
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".jpg")
@@ -121,16 +130,10 @@ class VGGFace2(MutiLevelDatasetBase):
         return {"gallery": gallery, "probe": probe}
 
 
-class Synthetic(MutiLevelDatasetBase):
+class Synthetic(ReadableMultiLevelDatasetBase):
     """
     #TODO
     """
-
-    def __init__(self, dataset_directory):
-        dataset_directory = os.path.expanduser(dataset_directory)
-        dataset_directory = os.path.abspath(dataset_directory)
-        self.dataset_directory = dataset_directory
-        super().__init__(self._read_dataset())
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
