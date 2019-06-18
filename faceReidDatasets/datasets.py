@@ -26,6 +26,9 @@ class DatasetBase(abc.ABC):
     def __iter__(self):
         return self.dataset.__iter__()
 
+    def __len__(self):
+        return self.dataset.__len__()
+
     def as_target_to_source_list(self):
         target_to_source_list = {}
         for k, g in itertools.groupby(self._dataset, lambda x: x[1]):
@@ -172,11 +175,11 @@ class Synthetic(ReadableMultiLevelDatasetBase):
         gallery = []
         probe = []
 
-        regex = "{0}_{1}_{2}_{3}_{4}.png".format(r"\d{5}", # Model
-                                                 r"A",     # Lighting
-                                                 r"270",   # Azimuth
-                                                 r"90",    # Zenith
-                                                 r"256")   # Resolution
+        regex = "{0}_{1}_{2}_{3}_{4}.png".format(r"\d{5}",  # Model
+                                                 r"A",      # Lighting
+                                                 r"270",    # Azimuth
+                                                 r"90",     # Zenith
+                                                 r"256")    # Resolution
         hq_regex = re.compile(regex)
 
         for label, paths in subset.as_target_to_source_list().items():
