@@ -1,5 +1,8 @@
 import os
 import unittest
+import tempfile
+import pickle
+
 from faceReidDatasets import datasets
 
 
@@ -120,6 +123,31 @@ class VGGFace2Tests(unittest.TestCase):
         # Test length of galleries.
         self.assertEqual(len(dataset["train"]["gallery"]), 8631)
         self.assertEqual(len(dataset["test"]["gallery"]), 500)
+
+    def test_init_cache_created(self):
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "vggface2.pickle")
+        dataset = datasets.VGGFace2(self.dataset_directory,
+                                    cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+    def test_init_cache_read(self):
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "vggface2.pickle")
+        dataset = datasets.VGGFace2(self.dataset_directory,
+                                    cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+        # Modfy dataset and cache manually.
+        dataset.dataset["test"] = []
+        with open(cache_path, 'wb') as f:
+            pickle.dump(dataset.dataset, f)
+
+        dataset2 = datasets.VGGFace2(self.dataset_directory,
+                                     cache_directory=cache_dir)
+        self.assertEqual(len(dataset2.dataset["test"]), 0)
 
 
 class SyntheticTests(unittest.TestCase):

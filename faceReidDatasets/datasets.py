@@ -4,6 +4,7 @@ import abc
 import random
 import itertools
 import sacred
+import pickle
 
 from typing import List, Set, Tuple
 
@@ -24,6 +25,9 @@ class DatasetBase(abc.ABC):
 
     def __iter__(self):
         return self.dataset.__iter__()
+
+    def __len__(self):
+        return self.dataset.__len__()
 
     def as_target_to_source_list(self):
         target_to_source_list = {}
@@ -90,16 +94,48 @@ class MutiLevelDatasetBase(abc.ABC):
         return dataset
 
 
-class VGGFace2(MutiLevelDatasetBase):
+class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     """
     #TODO
     """
-
-    def __init__(self, dataset_directory):
+    def __init__(self, dataset_directory, **kwargs):
         dataset_directory = os.path.expanduser(dataset_directory)
         dataset_directory = os.path.abspath(dataset_directory)
         self.dataset_directory = dataset_directory
-        super().__init__(self._read_dataset())
+        super().__init__(
+            self._read_dataset_via_cache(dataset_directory, **kwargs)
+        )
+
+    def _read_dataset_via_cache(self,
+                                dataset_directory,
+                                cache_directory=None):
+        dataset_name = os.path.basename(dataset_directory)
+        if cache_directory is None:
+            return self._read_dataset()
+
+        # Read / Store in the cache.
+        try:
+            cache_path = os.path.join(cache_directory,
+                                      dataset_name + ".pickle")
+            with open(cache_path, "rb") as f:
+                return pickle.load(f)
+        except FileNotFoundError:
+            dataset = self._read_dataset()
+            try:
+                with open(cache_path, 'wb') as f:
+                    pickle.dump(dataset, f)
+            finally:
+                return dataset
+
+    @abc.abstractmethod
+    def _read_dataset(self):
+        pass
+
+
+class VGGFace2(ReadableMultiLevelDatasetBase):
+    """
+    #TODO
+    """
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".jpg")
@@ -121,16 +157,10 @@ class VGGFace2(MutiLevelDatasetBase):
         return {"gallery": gallery, "probe": probe}
 
 
-class Synthetic(MutiLevelDatasetBase):
+class Synthetic(ReadableMultiLevelDatasetBase):
     """
     #TODO
     """
-
-    def __init__(self, dataset_directory):
-        dataset_directory = os.path.expanduser(dataset_directory)
-        dataset_directory = os.path.abspath(dataset_directory)
-        self.dataset_directory = dataset_directory
-        super().__init__(self._read_dataset())
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
@@ -146,11 +176,11 @@ class Synthetic(MutiLevelDatasetBase):
         gallery = []
         probe = []
 
-        regex = "{0}_{1}_{2}_{3}_{4}.png".format(r"\d{5}", # Model
-                                                 r"A",     # Lighting
-                                                 r"270",   # Azimuth
-                                                 r"90",    # Zenith
-                                                 r"256")   # Resolution
+        regex = "{0}_{1}_{2}_{3}_{4}.png".format(r"\d{5}",  # Model
+                                                 r"A",      # Lighting
+                                                 r"270",    # Azimuth
+                                                 r"90",     # Zenith
+                                                 r"256")    # Resolution
         hq_regex = re.compile(regex)
 
         for label, paths in subset.as_target_to_source_list().items():
