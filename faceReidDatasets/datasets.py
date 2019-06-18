@@ -4,6 +4,7 @@ import abc
 import random
 import itertools
 import sacred
+import pickle
 
 from typing import List, Set, Tuple
 
@@ -94,11 +95,33 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     """
     #TODO
     """
-    def __init__(self, dataset_directory):
+    def __init__(self, dataset_directory, **kwargs):
         dataset_directory = os.path.expanduser(dataset_directory)
         dataset_directory = os.path.abspath(dataset_directory)
         self.dataset_directory = dataset_directory
-        super().__init__(self._read_dataset())
+        super().__init__(
+            self._read_dataset_via_cache(dataset_directory, **kwargs)
+        )
+
+    def _read_dataset_via_cache(self,
+                                dataset_directory,
+                                cache_directory=None):
+        dataset_name = os.path.basename(dataset_directory)
+        cache_path = os.path.join(cache_directory, dataset_name + ".pickle")
+
+        # Cache read.
+        try:
+            with open(cache_path, "rb") as f:
+                return pickle.load(f)
+        except FileNotFoundError:
+
+            # Dataset read and cache write.
+            dataset = self._read_dataset()
+            try:
+                with open(cache_path, 'wb') as f:
+                    pickle.dump(dataset, f)
+            finally:
+                return dataset
 
     @abc.abstractmethod
     def _read_dataset(self):
