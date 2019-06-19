@@ -26,6 +26,9 @@ class DatasetBase(abc.ABC):
     def __iter__(self):
         return self.dataset.__iter__()
 
+    def __getitem__(self, key):
+        return self.dataset.__getitem__(key)
+
     def __len__(self):
         return self.dataset.__len__()
 
