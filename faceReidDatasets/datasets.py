@@ -5,13 +5,14 @@ import random
 import itertools
 import sacred
 import pickle
+import collections
 
 from typing import List, Set, Tuple
 
 ingrediant = sacred.Ingredient("dataset")
 
 
-class DatasetBase(abc.ABC):
+class DatasetBase(abc.ABC, collections.abc.Sequence):
     """
     #TODO
     """
@@ -22,9 +23,6 @@ class DatasetBase(abc.ABC):
     @property
     def dataset(self):
         return self._dataset
-
-    def __iter__(self):
-        return self.dataset.__iter__()
 
     def __getitem__(self, key):
         return self.dataset.__getitem__(key)
