@@ -116,6 +116,8 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
 
         # Read / Store in the cache.
         try:
+            cache_directory = os.path.expanduser(cache_directory)
+            cache_directory = os.path.abspath(cache_directory)
             cache_path = os.path.join(cache_directory,
                                       dataset_name + ".pickle")
             with open(cache_path, "rb") as f:
