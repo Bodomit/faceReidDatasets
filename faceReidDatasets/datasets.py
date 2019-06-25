@@ -12,7 +12,7 @@ from typing import List, Set, Tuple
 ingrediant = sacred.Ingredient("dataset")
 
 
-class DatasetBase(abc.ABC, collections.abc.Sequence):
+class DatasetBase(collections.abc.Sequence):
     """
     #TODO
     """
@@ -116,21 +116,54 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
 
         # Read / Store in the cache.
         try:
+            cache_directory = os.path.expanduser(cache_directory)
+            cache_directory = os.path.abspath(cache_directory)
             cache_path = os.path.join(cache_directory,
                                       dataset_name + ".pickle")
             with open(cache_path, "rb") as f:
-                return pickle.load(f)
+                # Prefix dataset directory.
+                scrubbed_dataset = pickle.load(f)
+                return self._prefix_dataset_directory(scrubbed_dataset)
+
         except FileNotFoundError:
             dataset = self._read_dataset()
             try:
+                # Scrub dataset of dataset_directory.
+                scrubbed_dataset = self._scrub_dataset_directory(dataset)
                 with open(cache_path, 'wb') as f:
-                    pickle.dump(dataset, f)
+                    pickle.dump(scrubbed_dataset, f)
             finally:
                 return dataset
 
     @abc.abstractmethod
     def _read_dataset(self):
         pass
+
+    def _scrub_dataset_directory(self, dataset):
+
+        def scrub(dataset):
+            scrubbed_samples = []
+            for sample in dataset:
+                scrubbed_samples.append(
+                    (sample[0].replace(self.dataset_directory, ""), sample[1]))
+            return scrubbed_samples
+
+        return self._traverse(dataset, scrub)
+
+    def _prefix_dataset_directory(self, dataset):
+
+        def prefix(dataset):
+            prefixed_samples = []
+            for sample in dataset:
+                prefixed_samples.append(
+                    (
+                        os.path.join(self.dataset_directory, sample[0]),
+                        sample[1]
+                    )
+                )
+            return prefixed_samples
+
+        return self._traverse(dataset, prefix)
 
 
 class VGGFace2(ReadableMultiLevelDatasetBase):
