@@ -3,7 +3,7 @@ import unittest
 import tempfile
 import pickle
 
-from faceReidDatasets import datasets
+from freidds import datasets
 
 
 class DatasetBaseBasic(unittest.TestCase):
