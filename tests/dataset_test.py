@@ -42,6 +42,11 @@ class DatasetBaseBasic(unittest.TestCase):
                    3: ["C"]}
         self.assertDictEqual(dataset, correct)
 
+    def test_as_column_lists(self):
+        dataset = datasets.DatasetBase(self.data).as_column_lists()
+        self.assertEqual(len(dataset), 2)
+        self.assertEqual(len(dataset[0]), len(dataset[1]))
+
 
 class MultiLevelDatasetBaseBasic(unittest.TestCase):
     def setUp(self):

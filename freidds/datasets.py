@@ -36,6 +36,9 @@ class DatasetBase(collections.abc.Sequence):
             target_to_source_list[k] = [i[0] for i in g]
         return target_to_source_list
 
+    def as_column_lists(self):
+        return list(zip(*self.dataset))
+
 
 class MutiLevelDatasetBase(abc.ABC):
     """
