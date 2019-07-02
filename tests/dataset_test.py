@@ -145,14 +145,13 @@ class VGGFace2Tests(unittest.TestCase):
         self.assertIsNotNone(dataset)
         self.assertTrue(os.path.exists(cache_path))
 
-        # Modfy dataset and cache manually.
-        dataset.dataset["test"] = []
-        with open(cache_path, 'wb') as f:
-            pickle.dump(dataset.dataset, f)
-
         dataset2 = datasets.VGGFace2(self.dataset_directory,
                                      cache_directory=cache_dir)
-        self.assertEqual(len(dataset2.dataset["test"]), 0)
+
+        # Check paths are correct.
+        self.assertTrue(os.path.exists(dataset2["train"][0][0]))
+        self.assertTrue(os.path.exists(dataset2["train"][1][0]))
+        self.assertTrue(os.path.exists(dataset2["train"][2][0]))
 
 
 class SyntheticTests(unittest.TestCase):
@@ -204,14 +203,8 @@ class SyntheticTests(unittest.TestCase):
         self.assertIsNotNone(dataset)
         self.assertTrue(os.path.exists(cache_path))
 
-        # Modfy dataset and cache manually.
-        dataset.dataset["test"] = []
-        with open(cache_path, 'wb') as f:
-            pickle.dump(dataset.dataset, f)
-
         dataset2 = datasets.Synthetic(self.dataset_directory,
                                       cache_directory=cache_dir)
-        self.assertEqual(len(dataset2.dataset["test"]), 0)
 
         # Check paths are correct.
         self.assertTrue(os.path.exists(dataset2["train"][0][0]))

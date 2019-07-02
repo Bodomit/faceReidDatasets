@@ -148,7 +148,8 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
             scrubbed_samples = []
             for sample in dataset:
                 scrubbed_samples.append(
-                    (sample[0].replace(self.dataset_directory, ""), sample[1]))
+                    (sample[0].replace(self.dataset_directory + "/", ""),
+                     sample[1]))
             return scrubbed_samples
 
         return self._traverse(dataset, scrub)
