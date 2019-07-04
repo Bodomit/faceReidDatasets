@@ -225,11 +225,49 @@ class COXFaceDBTests(unittest.TestCase):
         self.assertIsNotNone(dataset)
 
         # Test for 4 subsets.
-        self.assertSetEqual(set(dataset), set(["stills",
+        self.assertSetEqual(set(dataset), set(["still",
                                                "cam1",
                                                "cam2",
                                                "cam3"]))
 
         # Check classes are in correct sub directory.
-        self.assertTrue("201103180001" in (x[1] for x in dataset["stills"]))
+        self.assertTrue("201103180001" in (x[1] for x in dataset["still"]))
         self.assertTrue("201104240300" in (x[1] for x in dataset["cam3"]))
+
+    def test_v2s_dataset(self):
+        dataset = datasets.COXFaceDB(self.dataset_directory).get_v2s()
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Test for galleries and probes.
+        correct = set(["still", "cam1", "cam2", "cam3"])
+        self.assertSetEqual(set(dataset["train"][0].keys()), correct)
+        self.assertSetEqual(set(dataset["train"][9].keys()), correct)
+        self.assertSetEqual(set(dataset["test"][0].keys()), correct)
+        self.assertSetEqual(set(dataset["test"][9].keys()), correct)
+
+    def test_init_cache_created(self):
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "coxfacedb.pickle")
+        dataset = datasets.COXFaceDB(self.dataset_directory,
+                                     cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+    def test_init_cache_read(self):
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "coxfacedb.pickle")
+        dataset = datasets.COXFaceDB(self.dataset_directory,
+                                     cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+        dataset2 = datasets.COXFaceDB(self.dataset_directory,
+                                      cache_directory=cache_dir)
+
+        # Check paths are correct.
+        self.assertTrue(os.path.exists(dataset2["still"][0][0]))
+        self.assertTrue(os.path.exists(dataset2["cam1"][0][0]))
+        self.assertTrue(os.path.exists(dataset2["cam2"][-1][0]))
+        self.assertTrue(os.path.exists(dataset2["cam3"][-1][0]))
