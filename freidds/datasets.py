@@ -6,6 +6,7 @@ import itertools
 import sacred
 import pickle
 import collections
+import csv
 
 from typing import List, Set, Tuple
 
@@ -102,10 +103,11 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     """
     #TODO
     """
-    def __init__(self, dataset_directory, **kwargs):
+    def __init__(self, dataset_directory, cache_file_name, **kwargs):
         dataset_directory = os.path.expanduser(dataset_directory)
         dataset_directory = os.path.abspath(dataset_directory)
         self.dataset_directory = dataset_directory
+        self.cache_file_name = cache_file_name
         super().__init__(
             self._read_dataset_via_cache(dataset_directory, **kwargs)
         )
@@ -113,7 +115,6 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     def _read_dataset_via_cache(self,
                                 dataset_directory,
                                 cache_directory=None):
-        dataset_name = os.path.basename(dataset_directory)
         if cache_directory is None:
             return self._read_dataset()
 
@@ -122,7 +123,7 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
             cache_directory = os.path.expanduser(cache_directory)
             cache_directory = os.path.abspath(cache_directory)
             cache_path = os.path.join(cache_directory,
-                                      dataset_name + ".pickle")
+                                      self.cache_file_name + ".pickle")
             with open(cache_path, "rb") as f:
                 # Prefix dataset directory.
                 scrubbed_dataset = pickle.load(f)
@@ -175,6 +176,9 @@ class VGGFace2(ReadableMultiLevelDatasetBase):
     #TODO
     """
 
+    def __init__(self, dataset_directory, **kwargs):
+        super().__init__(dataset_directory, "vggface2", **kwargs)
+
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".jpg")
 
@@ -199,6 +203,9 @@ class Synthetic(ReadableMultiLevelDatasetBase):
     """
     #TODO
     """
+
+    def __init__(self, dataset_directory, **kwargs):
+        super().__init__(dataset_directory, "synth", **kwargs)
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
@@ -228,3 +235,112 @@ class Synthetic(ReadableMultiLevelDatasetBase):
             gallery.append((label, gallery_candidate))
             probe.extend((label, p) for p in paths)
         return {"gallery": gallery, "probe": probe}
+
+
+class COXFaceDB(ReadableMultiLevelDatasetBase):
+    """
+    #TODO
+    """
+
+    SUBDATASETS = {
+        "FACE_32_40": os.path.join("data1", "face_32_40"),
+        "FACE_48_60": os.path.join("data1", "face_48_60"),
+        "ORIGINAL": os.path.join("data2", "original_still_video")
+    }
+
+    def __init__(self, dataset_directory, subdataset="FACE_48_60", **kwargs):
+        subdataset_directory = os.path.join(dataset_directory,
+                                            self.SUBDATASETS[subdataset])
+        super().__init__(subdataset_directory, "coxfacedb", **kwargs)
+
+    def _read_dataset(self):
+
+        if not os.path.isdir(self.dataset_directory):
+            raise NotADirectoryError()
+
+        dataset = {
+            "still": [],
+            "cam1": [],
+            "cam2": [],
+            "cam3": []
+        }
+
+        # Get stills.
+        stills_directory = os.path.join(self.dataset_directory, "still")
+        for root, _, files in os.walk(stills_directory, topdown=True):
+            for file in files:
+                if os.path.splitext(file)[1] == ".bmp":
+                    path = os.path.join(root, file)
+                    path = os.path.expanduser(path)
+                    path = os.path.abspath(path)
+                    label = file.split("_")[0]
+                    dataset["still"].append((path, label))
+            break
+
+        # Get videos.
+        video_directory = os.path.join(self.dataset_directory, "video")
+        for root, dirs, files in os.walk(video_directory, topdown=True):
+            assert not (dirs and files)
+
+            for file in files:
+                if os.path.splitext(file)[1] == ".bmp":
+                    path = os.path.join(root, file)
+                    path = os.path.expanduser(path)
+                    path = os.path.abspath(path)
+                    label = os.path.basename(os.path.dirname(path))
+                    subset = os.path.basename(os.path.dirname(root))
+                    dataset[subset].append((path, label))
+
+        return dataset
+
+    def get_v2s(self, seed=42):
+        random.seed(seed)
+        return {
+            "train": self._v2s_subset("train"),
+            "test": self._v2s_subset("test")
+        }
+
+    def _v2s_subset(self, subset):
+        ids = self._get_ids_per_scenario(subset, "v2s")
+        return [self._v2s_subset_round(r) for r in ids]
+
+    def _v2s_subset_round(self, ids):
+        v2s_subset_round = {
+            "still": self._get_v2s_round_camera(ids, "still"),
+            "cam1": self._get_v2s_round_camera(ids, "cam1"),
+            "cam2": self._get_v2s_round_camera(ids, "cam2"),
+            "cam3": self._get_v2s_round_camera(ids, "cam3")
+        }
+        return v2s_subset_round
+
+    def _get_id_map_for_scenario(self, scenario):
+        filename = "{}_sub_id_list.csv".format(scenario)
+        dir_path = os.path.dirname(__file__)
+        path = os.path.join(dir_path, "resources", "coxfacedb", filename)
+        path = os.path.abspath(path)
+        with open(path, mode='r', encoding='utf-8-sig') as file:
+            reader = csv.reader(file)
+            return {k: i.strip() for (k, i) in reader}
+
+    def _get_ids_per_scenario(self, subset, scenario):
+        assert scenario in ["v2s", "s2v", "v2v"]
+        # Map index in list to actual id.
+        id_map = self._get_id_map_for_scenario(scenario)
+
+        # Get ids for each round in each scenario.
+        filename = "{}_{}_sub_list.csv".format(scenario, subset)
+        dir_path = os.path.dirname(__file__)
+        path = os.path.join(dir_path, "resources", "coxfacedb", filename)
+        path = os.path.abspath(path)
+
+        rounds = []
+        with open(path, mode='r', encoding='utf-8-sig') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                rounds.append([id_map[i] for i in row])
+
+        return rounds
+
+    def _get_v2s_round_camera(self, ids, camera):
+        return [s for s in self[camera] if s[1] in ids] 
+
