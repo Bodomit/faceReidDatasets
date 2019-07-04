@@ -228,3 +228,64 @@ class Synthetic(ReadableMultiLevelDatasetBase):
             gallery.append((label, gallery_candidate))
             probe.extend((label, p) for p in paths)
         return {"gallery": gallery, "probe": probe}
+
+
+class COXFaceDB(ReadableMultiLevelDatasetBase):
+    """
+    #TODO
+    """
+
+    SUBDATASETS = {
+        "FACE_32_40": os.path.join("data1", "face_32_40"),
+        "FACE_48_60": os.path.join("data1", "face_48_60"),
+        "ORIGINAL": os.path.join("data2", "original_still_video")
+    }
+
+    def __init__(self, dataset_directory, subdataset="FACE_48_60", **kwargs):
+        subdataset_directory = os.path.join(dataset_directory,
+                                            self.SUBDATASETS[subdataset])
+        super().__init__(subdataset_directory, **kwargs)
+
+    def _read_dataset(self):
+
+        if not os.path.isdir(self.dataset_directory):
+            raise NotADirectoryError()
+
+        dataset = {
+            "stills": [],
+            "cam1": [],
+            "cam2": [],
+            "cam3": []
+        }
+
+        # Get stills.
+        stills_directory = os.path.join(self.dataset_directory, "still")
+        for root, _, files in os.walk(stills_directory, topdown=True):
+            for file in files:
+                if os.path.splitext(file)[1] == ".bmp":
+                    path = os.path.join(root, file)
+                    path = os.path.expanduser(path)
+                    path = os.path.abspath(path)
+                    label = file.split("_")[0]
+                    dataset["stills"].append((path, label))
+            break
+
+        # Get videos.
+        video_directory = os.path.join(self.dataset_directory, "video")
+        for root, dirs, files in os.walk(video_directory, topdown=True):
+            assert not (dirs and files)
+
+            for file in files:
+                if os.path.splitext(file)[1] == ".bmp":
+                    path = os.path.join(root, file)
+                    path = os.path.expanduser(path)
+                    path = os.path.abspath(path)
+                    label = os.path.basename(os.path.dirname(path))
+                    subset = os.path.basename(os.path.dirname(root))
+                    dataset[subset].append((path, label))
+
+        return dataset
+
+    def get_v2s(self, seed=42):
+        random.seed(seed)
+        return None

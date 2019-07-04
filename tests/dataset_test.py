@@ -210,3 +210,26 @@ class SyntheticTests(unittest.TestCase):
         self.assertTrue(os.path.exists(dataset2["train"][0][0]))
         self.assertTrue(os.path.exists(dataset2["train"][1][0]))
         self.assertTrue(os.path.exists(dataset2["train"][2][0]))
+
+
+class COXFaceDBTests(unittest.TestCase):
+    def setUp(self):
+        self.dataset_directory = os.path.join(
+            "~",
+            "datasets",
+            "coxfacedb"
+        )
+
+    def test_init(self):
+        dataset = datasets.COXFaceDB(self.dataset_directory)
+        self.assertIsNotNone(dataset)
+
+        # Test for 4 subsets.
+        self.assertSetEqual(set(dataset), set(["stills",
+                                               "cam1",
+                                               "cam2",
+                                               "cam3"]))
+
+        # Check classes are in correct sub directory.
+        self.assertTrue("201103180001" in (x[1] for x in dataset["stills"]))
+        self.assertTrue("201104240300" in (x[1] for x in dataset["cam3"]))
