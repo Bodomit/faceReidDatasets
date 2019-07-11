@@ -196,7 +196,7 @@ class VGGFace2(ReadableMultiLevelDatasetBase):
             gallery_candidate = paths.pop(random.randrange(0, len(paths)))
             gallery.append((label, gallery_candidate))
             probe.extend((label, p) for p in paths)
-        return {"gallery": gallery, "probe": probe}
+        return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 
 class Synthetic(ReadableMultiLevelDatasetBase):
@@ -234,7 +234,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
             paths.remove(gallery_candidate)
             gallery.append((label, gallery_candidate))
             probe.extend((label, p) for p in paths)
-        return {"gallery": gallery, "probe": probe}
+        return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 
 class COXFaceDB(ReadableMultiLevelDatasetBase):
@@ -342,5 +342,5 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
         return rounds
 
     def _get_v2s_round_camera(self, ids, camera):
-        return [s for s in self[camera] if s[1] in ids] 
+        return DatasetBase([s for s in self[camera] if s[1] in ids])
 
