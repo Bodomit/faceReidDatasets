@@ -343,4 +343,3 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
 
     def _get_v2s_round_camera(self, ids, camera):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
-

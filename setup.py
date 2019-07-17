@@ -9,5 +9,6 @@ setup(
     packages=['freidds'],
     license='GNU Affero General Public License v3.0',
     long_description=open('README.md').read(),
+    include_package_data=True,
     install_requires=requirements
 )
