@@ -235,13 +235,28 @@ class COXFaceDBTests(unittest.TestCase):
         self.assertTrue("201104240300" in (x[1] for x in dataset["cam3"]))
 
     def test_v2s_dataset(self):
-        dataset = datasets.COXFaceDB(self.dataset_directory).get_v2s()
+        dataset = datasets.COXFaceDB(self.dataset_directory)
+        dataset = dataset.get_v2s(gallery_and_probe=False)
 
         # Test for two subsets.
         self.assertSetEqual(set(dataset), set(["train", "test"]))
 
         # Test for galleries and probes.
         correct = set(["still", "cam1", "cam2", "cam3"])
+        self.assertSetEqual(set(dataset["train"][0].keys()), correct)
+        self.assertSetEqual(set(dataset["train"][9].keys()), correct)
+        self.assertSetEqual(set(dataset["test"][0].keys()), correct)
+        self.assertSetEqual(set(dataset["test"][9].keys()), correct)
+
+    def test_v2s_dataset_gallery_and_probe(self):
+        dataset = datasets.COXFaceDB(self.dataset_directory)
+        dataset = dataset.get_v2s(gallery_and_probe=True)
+
+        # Test for two subsets.
+        self.assertSetEqual(set(dataset), set(["train", "test"]))
+
+        # Test for galleries and probes.
+        correct = set(["gallery", "probe"])
         self.assertSetEqual(set(dataset["train"][0].keys()), correct)
         self.assertSetEqual(set(dataset["train"][9].keys()), correct)
         self.assertSetEqual(set(dataset["test"][0].keys()), correct)

@@ -293,25 +293,35 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
 
         return dataset
 
-    def get_v2s(self, seed=42):
+    def get_v2s(self, gallery_and_probe=True, seed=42):
         random.seed(seed)
         return {
-            "train": self._v2s_subset("train"),
-            "test": self._v2s_subset("test")
+            "train": self._v2s_subset("train", gallery_and_probe),
+            "test": self._v2s_subset("test", gallery_and_probe)
         }
 
-    def _v2s_subset(self, subset):
+    def _v2s_subset(self, subset, gallery_and_probe):
         ids = self._get_ids_per_scenario(subset, "v2s")
-        return [self._v2s_subset_round(r) for r in ids]
+        return [self._v2s_subset_round(r, gallery_and_probe) for r in ids]
 
-    def _v2s_subset_round(self, ids):
+    def _v2s_subset_round(self, ids, gallery_and_probe):
         v2s_subset_round = {
             "still": self._get_v2s_round_camera(ids, "still"),
             "cam1": self._get_v2s_round_camera(ids, "cam1"),
             "cam2": self._get_v2s_round_camera(ids, "cam2"),
             "cam3": self._get_v2s_round_camera(ids, "cam3")
         }
-        return v2s_subset_round
+
+        if gallery_and_probe:
+            probe = DatasetBase(
+                itertools.chain.from_iterable(
+                    v2s_subset_round[c] for c in ["cam1", "cam2", "cam3"]))
+            return {
+                "gallery": v2s_subset_round["still"],
+                "probe": probe
+            }
+        else:
+            return v2s_subset_round
 
     def _get_id_map_for_scenario(self, scenario):
         filename = "{}_sub_id_list.csv".format(scenario)
