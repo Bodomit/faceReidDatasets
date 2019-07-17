@@ -194,8 +194,8 @@ class VGGFace2(ReadableMultiLevelDatasetBase):
         probe = []
         for label, paths in subset.as_target_to_source_list().items():
             gallery_candidate = paths.pop(random.randrange(0, len(paths)))
-            gallery.append((label, gallery_candidate))
-            probe.extend((label, p) for p in paths)
+            gallery.append((gallery_candidate, label))
+            probe.extend((p, label) for p in paths)
         return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 
@@ -232,8 +232,8 @@ class Synthetic(ReadableMultiLevelDatasetBase):
             gallery_candidate = [i for i in paths
                                  if hq_regex.match(os.path.basename(i))][0]
             paths.remove(gallery_candidate)
-            gallery.append((label, gallery_candidate))
-            probe.extend((label, p) for p in paths)
+            gallery.append((gallery_candidate, label))
+            probe.extend((p, label) for p in paths)
         return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 

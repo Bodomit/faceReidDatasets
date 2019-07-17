@@ -234,6 +234,12 @@ class COXFaceDBTests(unittest.TestCase):
         self.assertTrue("201103180001" in (x[1] for x in dataset["still"]))
         self.assertTrue("201104240300" in (x[1] for x in dataset["cam3"]))
 
+        # Check all files exist.
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["still"]))
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["cam1"]))
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["cam2"]))
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["cam3"]))
+
     def test_v2s_dataset(self):
         dataset = datasets.COXFaceDB(self.dataset_directory)
         dataset = dataset.get_v2s(gallery_and_probe=False)
