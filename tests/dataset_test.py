@@ -292,3 +292,27 @@ class COXFaceDBTests(unittest.TestCase):
         self.assertTrue(os.path.exists(dataset2["cam1"][0][0]))
         self.assertTrue(os.path.exists(dataset2["cam2"][-1][0]))
         self.assertTrue(os.path.exists(dataset2["cam3"][-1][0]))
+
+
+class MMFTests(unittest.TestCase):
+    def setUp(self):
+        self.dataset_directory = os.path.join(
+            "~",
+            "datasets",
+            "mmf"
+        )
+
+    def test_init(self):
+        dataset = datasets.MMF(self.dataset_directory)
+        self.assertIsNotNone(dataset)
+
+        # Test for 4 subsets.
+        self.assertSetEqual(set(dataset), set(["A", "B"]))
+
+        # Check classes are in correct sub directory.
+        self.assertTrue("001" in (x[1] for x in dataset["A"]))
+        self.assertTrue("001" in (x[1] for x in dataset["B"]))
+
+        # Check all files exist.
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["A"]))
+        self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["B"]))

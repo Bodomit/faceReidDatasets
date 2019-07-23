@@ -353,3 +353,38 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
 
     def _get_v2s_round_camera(self, ids, camera):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
+
+
+class MMF(ReadableMultiLevelDatasetBase):
+    """
+    #TODO
+    """
+
+    def __init__(self, dataset_directory, **kwargs):
+        super().__init__(dataset_directory, "mmf", **kwargs)
+
+    def _read_dataset(self):
+
+        if not os.path.isdir(self.dataset_directory):
+            raise NotADirectoryError()
+
+        def get_images(subset):
+            paths_with_labels = []
+            subset_directory = os.path.join(self.dataset_directory, subset)
+            for root, dirs, files in os.walk(subset_directory, topdown=True):
+                assert not (dirs and files)
+                for file in files:
+                    if os.path.splitext(file)[1] == ".png":
+                        path = os.path.join(root, file)
+                        path = os.path.expanduser(path)
+                        path = os.path.abspath(path)
+                        label = os.path.basename(os.path.dirname(path))
+                        paths_with_labels.append((path, label))
+            return paths_with_labels
+
+        dataset = {
+            "A": get_images("A"),
+            "B": get_images("B")
+        }
+
+        return dataset
