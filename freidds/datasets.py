@@ -355,7 +355,35 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
 
 
-class MMF(ReadableMultiLevelDatasetBase):
+class CrossValidatedTwinDataset(ReadableMultiLevelDatasetBase, abc.ABC):
+    """
+    #TODO
+    """
+
+    def __init__(self, dataset: dict, n_rounds: int):
+        super().__init__(dataset)
+        self._rounds = self._get_rounds(self.dataset, n_rounds)
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def rounds(self):
+        return self._rounds
+
+    def __iter__(self):
+        return self.rounds.__iter__()
+
+    def __getitem__(self, key):
+        return self.rounds[key]
+
+    def _get_rounds(self, dataset, n_rounds):
+        rounds = []
+        return rounds
+
+
+class MMF(CrossValidatedTwinDataset):
     """
     #TODO
     """
