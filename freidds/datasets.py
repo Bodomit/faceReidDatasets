@@ -48,6 +48,7 @@ class MutiLevelDatasetBase(abc.ABC):
 
     def __init__(self, dataset: dict):
         self._dataset = self._populate_dataset(dataset)
+        super().__init__()
 
     def _traverse(self, node, f):
         if isinstance(node, list) or isinstance(node, DatasetBase):
@@ -171,6 +172,26 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
         return self._traverse(dataset, prefix)
 
 
+class MultiViewDatasetMixin(object):
+    """
+    #TODO
+    """
+    def __init__(self, *args, **kwargs):
+        if not self.is_valid():
+            msg = "Dataset is not multiview: "
+            msg += "requires all classes to be represented in all subsets."
+            raise ValueError(msg)
+
+    def is_valid(self):
+        labels_per_subset = {}
+        for s in self.dataset:
+            labels = [l for l in self.dataset[s].as_target_to_source_list()]
+            labels_per_subset[s] = labels
+
+        g = itertools.groupby(labels_per_subset.values())
+        return next(g, True) and not next(g, False)
+
+
 class VGGFace2(ReadableMultiLevelDatasetBase):
     """
     #TODO
@@ -237,7 +258,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
         return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 
-class COXFaceDB(ReadableMultiLevelDatasetBase):
+class COXFaceDB(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
     """
     #TODO
     """
@@ -355,35 +376,7 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
 
 
-class CrossValidatedTwinDataset(ReadableMultiLevelDatasetBase, abc.ABC):
-    """
-    #TODO
-    """
-
-    def __init__(self, dataset: dict, n_rounds: int):
-        super().__init__(dataset)
-        self._rounds = self._get_rounds(self.dataset, n_rounds)
-
-    @property
-    def dataset(self):
-        return self._dataset
-
-    @property
-    def rounds(self):
-        return self._rounds
-
-    def __iter__(self):
-        return self.rounds.__iter__()
-
-    def __getitem__(self, key):
-        return self.rounds[key]
-
-    def _get_rounds(self, dataset, n_rounds):
-        rounds = []
-        return rounds
-
-
-class MMF(CrossValidatedTwinDataset):
+class MMF(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
     """
     #TODO
     """
