@@ -7,6 +7,8 @@ import sacred
 import pickle
 import collections
 import csv
+import warnings
+import copy
 
 from typing import List, Set, Tuple
 
@@ -374,6 +376,74 @@ class COXFaceDB(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
 
     def _get_v2s_round_camera(self, ids, camera):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
+
+
+class CVMultiViewWrapper:
+    """
+    #TODO
+    """
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def rounds(self):
+        return self._rounds
+
+    def __getitem__(self, key):
+        return self.rounds.__getitem__(key)
+
+    def __len__(self):
+        return self.rounds.__len__()
+
+    def __init__(self, dataset, n_rounds):
+        if not isinstance(dataset, MultiViewDatasetMixin):
+            raise ValueError()
+        self._dataset = dataset
+        self._rounds = self._get_rounds(dataset, n_rounds)
+
+    def _get_rounds(self, dataset, n_rounds):
+        first_key = list(dataset)[0]
+        n_labels = len(dataset.as_target_to_source_list()[first_key])
+        n_labels_per_section = n_labels // n_rounds
+
+        if n_labels % n_labels_per_section != 0:
+            warnings.warn("Last round will have less labels.")
+
+        labels = sorted(list(set(
+            dataset[first_key].as_target_to_source_list().keys())))
+
+        # Split the labels into rounds.
+        labels_per_section = []
+        while len(labels) > n_labels_per_section:
+            section_labels = labels[:n_labels_per_section]
+            labels_per_section.append(section_labels)
+            labels = labels[n_labels_per_section:]
+        labels_per_section.append(labels)
+
+        # Get the rounds, with a different holdout section each time.
+        labels_per_round = []
+        for r in range(n_rounds):
+            round_labels = copy.deepcopy(labels_per_section)
+            test_labels = round_labels[r]
+            del round_labels[r]
+            train_labels = list(itertools.chain.from_iterable(round_labels))
+            labels_per_round.append({
+                "train": train_labels,
+                "test": test_labels
+            })
+
+        # Get the datasets per round.
+        rounds = []
+        for r in labels_per_round:
+            round = collections.defaultdict(dict)
+            for t in r:
+                for s in dataset:
+                    round_samples = [x for x in dataset[s] if x[1] in r[t]]
+                    round[t][s] = DatasetBase(round_samples)
+            rounds.append(dict(round))
+        return rounds
 
 
 class MMF(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):

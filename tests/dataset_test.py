@@ -306,7 +306,7 @@ class MMFTests(unittest.TestCase):
         dataset = datasets.MMF(self.dataset_directory)
         self.assertIsNotNone(dataset)
 
-        # Test for 4 subsets.
+        # Test for 2 subsets.
         self.assertSetEqual(set(dataset), set(["A", "B"]))
 
         # Check classes are in correct sub directory.
@@ -316,3 +316,25 @@ class MMFTests(unittest.TestCase):
         # Check all files exist.
         self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["A"]))
         self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["B"]))
+
+
+class CVMultiViewWrapperTestsWithMMF(unittest.TestCase):
+    def setUp(self):
+        self.dataset_directory = os.path.join(
+            "~",
+            "datasets",
+            "mmf"
+        )
+
+    def test_init(self):
+        dataset = datasets.MMF(self.dataset_directory)
+        cv_dataset = datasets.CVMultiViewWrapper(dataset, 11)
+        self.assertIsNotNone(cv_dataset)
+
+        # Test for 11 rounds.
+        self.assertEqual(len(cv_dataset), 11)
+
+        # Check for test and train subsets in each round.
+        for round in cv_dataset:
+            self.assertIn("train", round)
+            self.assertIn("test", round)
