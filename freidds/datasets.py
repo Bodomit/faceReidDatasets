@@ -397,11 +397,12 @@ class CVMultiViewWrapper:
     def __len__(self):
         return self.rounds.__len__()
 
-    def __init__(self, dataset, n_rounds):
+    def __init__(self, dataset, n_rounds, v2s_gallery):
         if not isinstance(dataset, MultiViewDatasetMixin):
             raise ValueError()
         self._dataset = dataset
         self._rounds = self._get_rounds(dataset, n_rounds)
+        self._v2s_gallery = v2s_gallery
 
     def _get_rounds(self, dataset, n_rounds):
         first_key = list(dataset)[0]
@@ -444,6 +445,43 @@ class CVMultiViewWrapper:
                     round[t][s] = DatasetBase(round_samples)
             rounds.append(dict(round))
         return rounds
+
+    def _get_v2s_gallery(self, view_dataset: DatasetBase):
+        view_dataset_t2s = view_dataset.as_target_to_source_list()
+        gallery = []
+        for label, paths in view_dataset_t2s.items():
+            gallery_candidate = paths.pop(random.randrange(0, len(paths)))
+            gallery.append((gallery_candidate, label))
+        return DatasetBase(gallery)
+
+    def _v2s_round(self, round, gallery_and_probe):
+        round_v2s = collections.defaultdict(dict)
+        for subset in round:
+            for view in round[subset]:
+                if view == self._v2s_gallery:
+                    gallery = self._get_v2s_gallery(round[subset][view])
+                    round_v2s[subset][view] = gallery
+                else:
+                    round_v2s[subset][view] = round[subset][view]
+
+            if gallery_and_probe:
+                all_probes = [v for k, v in round_v2s[subset].items()
+                              if k != self._v2s_gallery]
+                all_probes = list(itertools.chain.from_iterable(all_probes))
+
+                round_v2s[subset] = {
+                    "gallery": DatasetBase(
+                        round_v2s[subset][self._v2s_gallery]),
+                    "probe": DatasetBase(all_probes)
+                }
+        return dict(round_v2s)
+
+    def get_v2s(self, gallery_and_probe=True, seed=42):
+        random.seed(seed)
+        v2s_rounds = []
+        for round in self.rounds:
+            v2s_rounds.append(self._v2s_round(round, gallery_and_probe))
+        return v2s_rounds
 
 
 class MMF(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
