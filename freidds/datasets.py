@@ -7,6 +7,8 @@ import sacred
 import pickle
 import collections
 import csv
+import warnings
+import copy
 
 from typing import List, Set, Tuple
 
@@ -48,6 +50,7 @@ class MutiLevelDatasetBase(abc.ABC):
 
     def __init__(self, dataset: dict):
         self._dataset = self._populate_dataset(dataset)
+        super().__init__()
 
     def _traverse(self, node, f):
         if isinstance(node, list) or isinstance(node, DatasetBase):
@@ -171,6 +174,26 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
         return self._traverse(dataset, prefix)
 
 
+class MultiViewDatasetMixin(object):
+    """
+    #TODO
+    """
+    def __init__(self, *args, **kwargs):
+        if not self.is_valid():
+            msg = "Dataset is not multiview: "
+            msg += "requires all classes to be represented in all subsets."
+            raise ValueError(msg)
+
+    def is_valid(self):
+        labels_per_subset = {}
+        for s in self.dataset:
+            labels = [l for l in self.dataset[s].as_target_to_source_list()]
+            labels_per_subset[s] = labels
+
+        g = itertools.groupby(labels_per_subset.values())
+        return next(g, True) and not next(g, False)
+
+
 class VGGFace2(ReadableMultiLevelDatasetBase):
     """
     #TODO
@@ -237,7 +260,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
         return {"gallery": DatasetBase(gallery), "probe": DatasetBase(probe)}
 
 
-class COXFaceDB(ReadableMultiLevelDatasetBase):
+class COXFaceDB(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
     """
     #TODO
     """
@@ -353,3 +376,144 @@ class COXFaceDB(ReadableMultiLevelDatasetBase):
 
     def _get_v2s_round_camera(self, ids, camera):
         return DatasetBase([s for s in self[camera] if s[1] in ids])
+
+
+class CVMultiViewWrapper:
+    """
+    #TODO
+    """
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def rounds(self):
+        return self._rounds
+
+    def __getitem__(self, key):
+        return self.rounds.__getitem__(key)
+
+    def __len__(self):
+        return self.rounds.__len__()
+
+    def __init__(self, dataset, n_rounds, v2s_gallery):
+        if not isinstance(dataset, MultiViewDatasetMixin):
+            raise ValueError()
+        self._dataset = dataset
+        self._rounds = self._get_rounds(dataset, n_rounds)
+        self._v2s_gallery = v2s_gallery
+
+    def _get_rounds(self, dataset, n_rounds):
+        first_key = list(dataset)[0]
+        n_labels = len(dataset.as_target_to_source_list()[first_key])
+        n_labels_per_section = n_labels // n_rounds
+
+        if n_labels % n_labels_per_section != 0:
+            warnings.warn("Last round will have less labels.")
+
+        labels = sorted(list(set(
+            dataset[first_key].as_target_to_source_list().keys())))
+
+        # Split the labels into rounds.
+        labels_per_section = []
+        while len(labels) > n_labels_per_section:
+            section_labels = labels[:n_labels_per_section]
+            labels_per_section.append(section_labels)
+            labels = labels[n_labels_per_section:]
+        labels_per_section.append(labels)
+
+        # Get the rounds, with a different holdout section each time.
+        labels_per_round = []
+        for r in range(n_rounds):
+            round_labels = copy.deepcopy(labels_per_section)
+            test_labels = round_labels[r]
+            del round_labels[r]
+            train_labels = list(itertools.chain.from_iterable(round_labels))
+            labels_per_round.append({
+                "train": train_labels,
+                "test": test_labels
+            })
+
+        # Get the datasets per round.
+        rounds = []
+        for r in labels_per_round:
+            round = collections.defaultdict(dict)
+            for t in r:
+                for s in dataset:
+                    round_samples = [x for x in dataset[s] if x[1] in r[t]]
+                    round[t][s] = DatasetBase(round_samples)
+            rounds.append(dict(round))
+        return rounds
+
+    def _get_v2s_gallery(self, view_dataset: DatasetBase):
+        view_dataset_t2s = view_dataset.as_target_to_source_list()
+        gallery = []
+        for label, paths in view_dataset_t2s.items():
+            gallery_candidate = paths.pop(random.randrange(0, len(paths)))
+            gallery.append((gallery_candidate, label))
+        return DatasetBase(gallery)
+
+    def _v2s_round(self, round, gallery_and_probe):
+        round_v2s = collections.defaultdict(dict)
+        for subset in round:
+            for view in round[subset]:
+                if view == self._v2s_gallery:
+                    gallery = self._get_v2s_gallery(round[subset][view])
+                    round_v2s[subset][view] = gallery
+                else:
+                    round_v2s[subset][view] = round[subset][view]
+
+            if gallery_and_probe:
+                all_probes = [v for k, v in round_v2s[subset].items()
+                              if k != self._v2s_gallery]
+                all_probes = list(itertools.chain.from_iterable(all_probes))
+
+                round_v2s[subset] = {
+                    "gallery": DatasetBase(
+                        round_v2s[subset][self._v2s_gallery]),
+                    "probe": DatasetBase(all_probes)
+                }
+        return dict(round_v2s)
+
+    def get_v2s(self, gallery_and_probe=True, seed=42):
+        random.seed(seed)
+        v2s_rounds = []
+        for round in self.rounds:
+            v2s_rounds.append(self._v2s_round(round, gallery_and_probe))
+        return v2s_rounds
+
+
+class MMF(ReadableMultiLevelDatasetBase, MultiViewDatasetMixin):
+    """
+    #TODO
+    """
+
+    def __init__(self, dataset_directory, **kwargs):
+        super().__init__(dataset_directory, "mmf", **kwargs)
+
+    def _read_dataset(self):
+
+        if not os.path.isdir(self.dataset_directory):
+            raise NotADirectoryError()
+
+        def get_images(subset):
+            paths_with_labels = []
+            subset_directory = os.path.join(self.dataset_directory, subset)
+            for root, dirs, files in os.walk(subset_directory, topdown=True):
+                assert not (dirs and files)
+                for file in files:
+                    if os.path.splitext(file)[1] == ".png":
+                        path = os.path.join(root, file)
+                        path = os.path.expanduser(path)
+                        path = os.path.abspath(path)
+                        label = os.path.basename(os.path.dirname(path))
+                        paths_with_labels.append((path, label))
+            return paths_with_labels
+
+        dataset = {
+            "A": get_images("A"),
+            "B": get_images("B")
+        }
+
+        return dataset
