@@ -173,6 +173,17 @@ class SyntheticTests(unittest.TestCase):
         self.assertTrue("00001" in (x[1] for x in dataset["train"]))
         self.assertTrue("00052" in (x[1] for x in dataset["test"]))
 
+    def test_filters(self):
+        filters = {
+            "lighting": ["A"],
+            "zenith": [90],
+            "azimuth": [270],
+            "resolution": None
+        }
+        dataset = datasets.Synthetic(self.dataset_directory, filters=filters)
+        self.assertIsNotNone(dataset)
+        self.assertEqual(len(dataset["train"]), 6576)
+
     def test_v2s_dataset(self):
         dataset = datasets.Synthetic(self.dataset_directory).get_v2s()
 
