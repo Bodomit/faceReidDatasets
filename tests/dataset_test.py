@@ -222,6 +222,48 @@ class SyntheticTests(unittest.TestCase):
         self.assertTrue(os.path.exists(dataset2["train"][1][0]))
         self.assertTrue(os.path.exists(dataset2["train"][2][0]))
 
+    def test_init_cache_read_with_filters(self):
+        filters = {
+            "lighting": ["A"],
+            "zenith": [90],
+            "azimuth": [270],
+            "resolution": None
+        }
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "synth.pickle")
+        dataset = datasets.Synthetic(self.dataset_directory,
+                                     cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+        dataset2 = datasets.Synthetic(self.dataset_directory,
+                                      filters=filters,
+                                      cache_directory=cache_dir)
+
+        self.assertEqual(len(dataset["train"]), 736488)
+        self.assertEqual(len(dataset2["train"]), 6576)
+
+    def test_init_cache_read_with_filters2(self):
+        filters = {
+            "lighting": ["A"],
+            "zenith": [90],
+            "azimuth": [270],
+            "resolution": None
+        }
+        cache_dir = tempfile.mkdtemp()
+        cache_path = os.path.join(cache_dir, "synth.pickle")
+        dataset = datasets.Synthetic(self.dataset_directory,
+                                     filters=filters,
+                                     cache_directory=cache_dir)
+        self.assertIsNotNone(dataset)
+        self.assertTrue(os.path.exists(cache_path))
+
+        dataset2 = datasets.Synthetic(self.dataset_directory,
+                                      cache_directory=cache_dir)
+
+        self.assertEqual(len(dataset["train"]), 6576)
+        self.assertEqual(len(dataset2["train"]), 736488)
+
 
 class COXFaceDBTests(unittest.TestCase):
     def setUp(self):
@@ -327,6 +369,10 @@ class MMFTests(unittest.TestCase):
         # Check all files exist.
         self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["A"]))
         self.assertTrue(all(os.path.isfile(x[0]) for x in dataset["B"]))
+
+    def test_ignore_filters_kwarg(self):
+        dataset = datasets.MMF(self.dataset_directory, filters=None)
+        self.assertIsNotNone(dataset)
 
 
 class CVMultiViewWrapperTestsWithMMF(unittest.TestCase):
