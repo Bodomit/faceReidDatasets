@@ -52,16 +52,16 @@ class MutiLevelDatasetBase(abc.ABC):
         self._dataset = self._populate_dataset(dataset)
         super().__init__()
 
-    def _traverse(self, node, f):
+    def traverse(self, node, f):
         if isinstance(node, list) or isinstance(node, DatasetBase):
             return f(node)
         elif isinstance(node, dict):
-            return {k: self._traverse(v, f) for k, v in node.items()}
+            return {k: self.traverse(v, f) for k, v in node.items()}
         else:
             raise ValueError("Node must be a list of tuples.")
 
     def _populate_dataset(self, dataset):
-        return self._traverse(dataset, lambda d: DatasetBase(d))
+        return self.traverse(dataset, lambda d: DatasetBase(d))
 
     @property
     def dataset(self):
@@ -77,7 +77,7 @@ class MutiLevelDatasetBase(abc.ABC):
             return MutiLevelDatasetBase(self.dataset[key])
 
     def as_target_to_source_list(self):
-        return self._traverse(self.dataset,
+        return self.traverse(self.dataset,
                               lambda d: d.as_target_to_source_list())
 
     def _read_train_test_dataset(self, dataset_directory, image_ext):
@@ -161,7 +161,7 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
                      sample[1]))
             return scrubbed_samples
 
-        return self._traverse(dataset, scrub)
+        return self.traverse(dataset, scrub)
 
     def _prefix_dataset_directory(self, dataset):
 
@@ -176,7 +176,7 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
                 )
             return prefixed_samples
 
-        return self._traverse(dataset, prefix)
+        return self.traverse(dataset, prefix)
 
 
 class MultiViewDatasetMixin(object):
@@ -235,7 +235,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
     def __init__(self, dataset_directory, filters=None, **kwargs):
         self.filter = self._build_filter(filters)
         super().__init__(dataset_directory, "synth", **kwargs)
-        self._dataset = super()._traverse(self._dataset, self.filter)
+        self._dataset = super().traverse(self._dataset, self.filter)
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
