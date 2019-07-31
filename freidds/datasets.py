@@ -71,7 +71,10 @@ class MutiLevelDatasetBase(abc.ABC):
         return self.dataset.__iter__()
 
     def __getitem__(self, key):
-        return self.dataset[key]
+        if isinstance(self.dataset[key], DatasetBase):
+            return self.dataset[key]
+        else:
+            return MutiLevelDatasetBase(self.dataset[key])
 
     def as_target_to_source_list(self):
         return self._traverse(self.dataset,
@@ -486,7 +489,7 @@ class CVMultiViewWrapper:
                 for s in dataset:
                     round_samples = [x for x in dataset[s] if x[1] in r[t]]
                     round[t][s] = DatasetBase(round_samples)
-            rounds.append(dict(round))
+            rounds.append(MutiLevelDatasetBase(round))
         return rounds
 
     def _get_v2s_gallery(self, view_dataset: DatasetBase):
