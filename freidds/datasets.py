@@ -86,14 +86,9 @@ class MutiLevelDatasetBase(abc.ABC):
             "test": []
         }
 
-        sample_filter = getattr(self, "filter", lambda f: True)
-
         for root, dirs, files in os.walk(dataset_directory, topdown=True):
             assert not (dirs and files)
             for file in files:
-                if not sample_filter(file):
-                    continue
-
                 if os.path.splitext(file)[1] == image_ext:
                     path = os.path.join(root, file)
                     path = os.path.expanduser(path)
@@ -109,18 +104,22 @@ class ReadableMultiLevelDatasetBase(MutiLevelDatasetBase, abc.ABC):
     """
     #TODO
     """
-    def __init__(self, dataset_directory, cache_file_name, **kwargs):
+    def __init__(self,
+                 dataset_directory,
+                 cache_file_name,
+                 cache_directory=None,
+                 **kwargs):
         dataset_directory = os.path.expanduser(dataset_directory)
         dataset_directory = os.path.abspath(dataset_directory)
         self.dataset_directory = dataset_directory
         self.cache_file_name = cache_file_name
         super().__init__(
-            self._read_dataset_via_cache(dataset_directory, **kwargs)
+            self._read_dataset_via_cache(dataset_directory, cache_directory)
         )
 
     def _read_dataset_via_cache(self,
                                 dataset_directory,
-                                cache_directory=None):
+                                cache_directory):
         if cache_directory is None:
             return self._read_dataset()
 
@@ -233,6 +232,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
     def __init__(self, dataset_directory, filters=None, **kwargs):
         self.filter = self._build_filter(filters)
         super().__init__(dataset_directory, "synth", **kwargs)
+        self._dataset = super()._traverse(self._dataset, self.filter)
 
     def _read_dataset(self):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
@@ -240,7 +240,9 @@ class Synthetic(ReadableMultiLevelDatasetBase):
     def _build_filter(self, filters):
 
         if filters is None:
-            return lambda f: True
+            def identity(ds: DatasetBase):
+                return ds
+            return identity
 
         def list_to_or_regex(l: List[str]):
             regex = "(" + str(l.pop())
@@ -265,8 +267,12 @@ class Synthetic(ReadableMultiLevelDatasetBase):
         full = "_".join(full)
         full = full + ".png"
 
-        def filter(s):
-            return re.fullmatch(full, s)
+        def filter(ds: DatasetBase):
+            filtered_dataset = []
+            for path, label in ds:
+                if re.fullmatch(full, os.path.basename(path)):
+                    filtered_dataset.append((path, label))
+            return DatasetBase(filtered_dataset)
 
         return filter
 
