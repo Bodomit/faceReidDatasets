@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/40057686/anaconda3/envs/nina/bin/python",
+    "python.pythonPath": "/home/40057686/anaconda3/envs/freidds/bin/python",
     "python.testing.unittestArgs": [
         "-v",
         "-s",
