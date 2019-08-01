@@ -250,6 +250,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
             return identity
 
         def list_to_or_regex(l: List[str]):
+            l = [s for s in l]  # Copy the list so the original is unmodified.
             regex = "(" + str(l.pop())
             for s in l:
                 regex += "|" + str(s)
