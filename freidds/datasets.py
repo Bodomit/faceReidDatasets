@@ -244,7 +244,7 @@ class Synthetic(ReadableMultiLevelDatasetBase):
         return self._read_train_test_dataset(self.dataset_directory, ".png")
 
     def _build_filter(self, filters):
-        filters = dict(copy.deepcopy(filters))
+        filters = copy.deepcopy(dict(filters))
 
         if filters is None:
             def identity(ds: DatasetBase):
