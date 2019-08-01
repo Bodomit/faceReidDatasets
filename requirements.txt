@@ -2,3 +2,5 @@ sacred
 gitpython
 pep8
 pylint
+pymongo
+mypy
